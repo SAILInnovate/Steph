@@ -1,13 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Montserrat:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Montserrat:wght@400;600;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    background-color: #FFC2E2;
+    background-image: radial-gradient(#FF69B4 15%, transparent 16%),
+                      radial-gradient(#FF69B4 15%, transparent 16%);
+    background-size: 60px 60px;
+    background-position: 0 0, 30px 30px;
+    overflow-x: hidden;
+  }
+}
+
 @layer utilities {
-  @keyframes float {
+  /* Typography Effects */
+  .text-shadow-barbie {
+    text-shadow: 3px 3px 0px #FF69B4, 6px 6px 0px #333333;
+  }
+  
+  /* Custom Box Shadows */
+  .box-shadow-hard {
+    box-shadow: 8px 8px 0px #333333;
+  }
+  
+  .box-shadow-hard-hover {
+    box-shadow: 12px 12px 0px #333333;
+  }
+  
+  .box-shadow-hard-active {
+    box-shadow: 4px 4px 0px #333333;
+  }
+
+  /* Scrollbar Hiding */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* The New Chic Floating Animation */
+  /* This makes the items float up, rotate gently, and drift sideways */
+  @keyframes float-chic {
     0% {
-      transform: translateY(100vh) rotate(0deg);
+      transform: translateY(120vh) rotate(0deg) translateX(0px);
       opacity: 0;
     }
     10% {
@@ -17,51 +58,12 @@
       opacity: 1;
     }
     100% {
-      transform: translateY(-100px) rotate(360deg);
+      transform: translateY(-20vh) rotate(360deg) translateX(50px);
       opacity: 0;
     }
   }
 
-  .animate-float {
-    animation: float linear infinite;
+  .animate-float-chic {
+    animation: float-chic linear infinite;
   }
-
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  .bubble-link {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-  .bubble-link:active {
-    animation: pop 0.3s ease;
-  }
-
-  @keyframes pop {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.15);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
-}
-
-html {
-  scroll-behavior: smooth;
 }
