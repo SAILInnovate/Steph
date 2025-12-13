@@ -3,7 +3,7 @@ import {
   X, CalendarCheck, Sparkles, CheckCircle, Loader2, 
   Instagram, User, AlertCircle, CalendarDays, CreditCard, 
   AlertTriangle, Check, Camera, MessageCircle, Download, 
-  Clock, ChevronRight, Phone
+  Clock, ChevronRight, Phone, HelpCircle, Eye
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -31,13 +31,14 @@ const CopyRow = ({ label, value }: { label: string, value: string }) => {
   );
 };
 
-export function Booking() {
+export function Booking({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolean) => void }) {
   // UI State
-  const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1); 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [activeCategory, setActiveCategory] = useState("Simple Design");
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [showLashGuide, setShowLashGuide] = useState(false); // NEW: State for lash guide
 
   // Booking Data State
   const [selectedService, setSelectedService] = useState<{name: string, duration: number, price: string, category: string} | null>(null);
@@ -61,19 +62,26 @@ export function Booking() {
 
   // STATIC DATA
   const services = [
+    // Simple Design
     { id: 1, category: "Simple Design", name: "Short Length", duration: 90, price: "£25" },
     { id: 2, category: "Simple Design", name: "Medium Length", duration: 90, price: "£30" },
     { id: 3, category: "Simple Design", name: "Long Length", duration: 105, price: "£35" },
     { id: 4, category: "Simple Design", name: "XL Length", duration: 120, price: "£40" },
     { id: 5, category: "Simple Design", name: "XXL Length", duration: 135, price: "£45" },
+    // Complex Design
     { id: 6, category: "Complex Design", name: "Short Length", duration: 105, price: "£30" },
     { id: 7, category: "Complex Design", name: "Medium Length", duration: 120, price: "£35" },
     { id: 8, category: "Complex Design", name: "Long Length", duration: 135, price: "£40" },
     { id: 9, category: "Complex Design", name: "XL Length", duration: 150, price: "£45" },
     { id: 10, category: "Complex Design", name: "XXL Length", duration: 165, price: "£50" },
+    // Toes
     { id: 11, category: "Toes", name: "Simple AC Toes", duration: 60, price: "£20" },
     { id: 12, category: "Toes", name: "Complex AC Toes", duration: 75, price: "£25" },
     { id: 13, category: "Toes", name: "Gel Polish Toes", duration: 45, price: "£5" },
+    // Lashes - Removed individual 'img' properties
+    { id: 14, category: "Lashes", name: "Classics", duration: 90, price: "£25" },
+    { id: 15, category: "Lashes", name: "Hybrids", duration: 105, price: "£30" },
+    { id: 16, category: "Lashes", name: "Russians", duration: 120, price: "£35" },
   ];
 
   const categories = useMemo(() => Array.from(new Set(services.map(s => s.category))), [services]);
@@ -163,6 +171,9 @@ export function Booking() {
       const timer = setTimeout(() => {
         setStep(1); setSelectedService(null); setSelectedDate(''); setAvailableSlots([]); setSelectedSlot(''); setBookingRef('');
         setClientDetails({ name: '', instagram: '', phone: '', notes: '' }); setTermsAccepted(false); setErrorMsg('');
+        // Reset guides on close
+        setShowSizeGuide(false);
+        setShowLashGuide(false);
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -306,7 +317,12 @@ export function Booking() {
                     {categories.map((cat) => (
                       <button
                         key={cat}
-                        onClick={() => setActiveCategory(cat)}
+                        onClick={() => {
+                            setActiveCategory(cat);
+                            // Reset guides when changing category
+                            setShowSizeGuide(false);
+                            setShowLashGuide(false);
+                        }}
                         className={`whitespace-nowrap px-4 py-1.5 rounded-full font-bold text-xs transition-all border-2 snap-start ${
                           activeCategory === cat 
                           ? 'bg-black text-white border-black shadow-[2px_2px_0px_#FF69B4]' 
@@ -318,6 +334,45 @@ export function Booking() {
                     ))}
                  </div>
               </div>
+
+              {/* Size Guide Toggle (Only for nails) */}
+              {(activeCategory === "Simple Design" || activeCategory === "Complex Design") && (
+                <div className="px-3 pt-3">
+                    <button 
+                        onClick={() => setShowSizeGuide(!showSizeGuide)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors w-full justify-center border border-dashed border-gray-300"
+                    >
+                        <HelpCircle size={14} />
+                        {showSizeGuide ? "Hide Length Guide" : "Not sure about length? Click here"}
+                    </button>
+                    
+                    {showSizeGuide && (
+                        <div className="mt-2 rounded-xl overflow-hidden border-2 border-black animate-in fade-in slide-in-from-top-2 duration-300">
+                            <img src="/images/naillengths.jpg" alt="Nail Length Guide" className="w-full h-auto" />
+                        </div>
+                    )}
+                </div>
+              )}
+
+               {/* NEW: Lash Style Guide Toggle (Only for Lashes) */}
+               {activeCategory === "Lashes" && (
+                <div className="px-3 pt-3">
+                    <button 
+                        onClick={() => setShowLashGuide(!showLashGuide)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors w-full justify-center border border-dashed border-gray-300"
+                    >
+                        <Eye size={14} />
+                        {showLashGuide ? "Hide Lash Styles" : "See Lash Style Guide"}
+                    </button>
+                    
+                    {showLashGuide && (
+                        <div className="mt-2 rounded-xl overflow-hidden border-2 border-black animate-in fade-in slide-in-from-top-2 duration-300">
+                            {/* Make sure lashprices.jpg is in public/images */}
+                            <img src="/images/lashes.jpg" alt="Lash Style Guide" className="w-full h-auto" />
+                        </div>
+                    )}
+                </div>
+              )}
 
               {/* Service List */}
               <div className="p-3 space-y-3 pb-8">
@@ -350,6 +405,18 @@ export function Booking() {
             <div className="p-4 space-y-4 animate-in slide-in-from-right duration-300 flex flex-col h-full">
               <button onClick={() => setStep(1)} className="text-xs font-bold text-gray-400 hover:text-black self-start flex items-center gap-1 mb-2">← BACK TO SERVICES</button>
               
+              {/* Selected Service Recap (Simplified) */}
+              <div className="bg-[#FFF0F5] border-2 border-[#FF69B4] rounded-xl p-3 flex items-center gap-4">
+                 <div className="w-16 h-16 rounded-lg border border-black bg-white flex items-center justify-center shrink-0">
+                    <Sparkles className="text-[#FF69B4]" />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">YOU SELECTED</p>
+                    <h3 className="font-black text-lg leading-tight">{selectedService?.name}</h3>
+                    <p className="text-sm font-bold">{selectedService?.price} • {selectedService?.duration} mins</p>
+                 </div>
+              </div>
+
               <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_#000]">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="font-['Montserrat'] font-bold text-xl">Pick a Slot</h2>

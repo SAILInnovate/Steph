@@ -1,36 +1,42 @@
 import { Calendar, Palette, Flower, ExternalLink } from 'lucide-react';
 
-export function Lookbook() {
+// We define that this component expects a function called 'onOpenBooking'
+export function Lookbook({ onOpenBooking }: { onOpenBooking: () => void }) {
+  
   const items = [
     {
       title: "Nails & Lashes",
       subtitle: "Steph's Beauty Clinic",
       desc: "Gel extensions, BIAB, Art & Volume Lashes.",
-      img: "/images/nails-pink.jpg", // The nail pic
+      img: "/images/nails-pink.jpg", 
       action: "BOOK APPOINTMENT",
       link: "https://www.instagram.com/stephsbeautyclinic/",
       icon: Calendar,
-      bgColor: "bg-white"
+      bgColor: "bg-white",
+      // We add this flag to identify that this specific item opens the booking modal
+      isBooking: true 
     },
     {
       title: "Luxe Cases",
       subtitle: "Custom Decoden",
       desc: "Handmade, sparkle-packed, and totally you.",
-      img: "/images/case.jpg", // YOUR NEW PHONE CASE PIC
+      img: "/images/case.jpg",
       action: "ORDER CUSTOM CASE",
       link: "https://www.instagram.com/stephsluxecreations/",
       icon: Palette,
-      bgColor: "bg-[#FFF0F5]" // Light pink bg for distinction
+      bgColor: "bg-[#FFF0F5]",
+      isBooking: false
     },
     {
       title: "Everlasting Flowers",
       subtitle: "Floral Garden",
       desc: "Ribbon roses that last forever. Perfect for gifts.",
-      img: "/images/flowers-pink.jpg", // The bouquet pic
+      img: "/images/flowers-pink.jpg", 
       action: "SHOP BOUQUETS",
       link: "https://www.instagram.com/stephsfloralgarden/#",
       icon: Flower,
-      bgColor: "bg-white"
+      bgColor: "bg-white",
+      isBooking: false
     }
   ];
 
@@ -38,6 +44,18 @@ export function Lookbook() {
     <section className="py-12 px-4 max-w-lg mx-auto relative z-10 space-y-12">
       {items.map((item, idx) => {
         const Icon = item.icon;
+
+        // This function decides what to do based on which item was clicked
+        const handleAction = () => {
+            if (item.isBooking) {
+                // If it's the nails item, run the function passed from App.tsx
+                onOpenBooking();
+            } else {
+                // Otherwise, open the link in a new tab
+                window.open(item.link, '_blank');
+            }
+        };
+
         return (
           <div key={idx} className={`${item.bgColor} border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_#333]`}>
             
@@ -51,7 +69,8 @@ export function Lookbook() {
             </div>
 
             {/* The Image (The Star of the show) */}
-            <div className="aspect-square w-full relative group cursor-pointer" onClick={() => window.open(item.link, '_blank')}>
+            {/* We attach handleAction here so tapping the image works too */}
+            <div className="aspect-square w-full relative group cursor-pointer" onClick={handleAction}>
               <img 
                 src={item.img} 
                 alt={item.title} 
@@ -60,7 +79,7 @@ export function Lookbook() {
               {/* Tap hint overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                 <span className="bg-white px-3 py-1 rounded-full font-bold text-xs border-2 border-black opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-                    TAP TO VISIT
+                    {item.isBooking ? "TAP TO BOOK" : "TAP TO VISIT"}
                 </span>
               </div>
             </div>
@@ -73,7 +92,7 @@ export function Lookbook() {
               </p>
               
               <button 
-                onClick={() => window.open(item.link, '_blank')}
+                onClick={handleAction}
                 className="w-full py-4 bg-black text-white font-['Montserrat'] font-black text-lg uppercase rounded-xl hover:bg-[#FF69B4] hover:shadow-[4px_4px_0px_#000] active:translate-y-1 transition-all flex items-center justify-center gap-2"
               >
                 <Icon size={20} /> {item.action}
