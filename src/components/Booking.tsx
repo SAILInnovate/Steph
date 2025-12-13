@@ -77,11 +77,10 @@ export function Booking({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v:
     // Toes
     { id: 11, category: "Toes", name: "Simple AC Toes", duration: 60, price: "£20" },
     { id: 12, category: "Toes", name: "Complex AC Toes", duration: 75, price: "£25" },
-    { id: 13, category: "Toes", name: "Gel Polish Toes", duration: 45, price: "£5" },
     // Lashes - Removed individual 'img' properties
-    { id: 14, category: "Lashes", name: "Classics", duration: 90, price: "£25" },
-    { id: 15, category: "Lashes", name: "Hybrids", duration: 105, price: "£30" },
-    { id: 16, category: "Lashes", name: "Russians", duration: 120, price: "£35" },
+    { id: 13, category: "Lashes", name: "Classics", duration: 90, price: "£25" },
+    { id: 14, category: "Lashes", name: "Hybrids", duration: 105, price: "£30" },
+    { id: 15, category: "Lashes", name: "Russians", duration: 120, price: "£35" },
   ];
 
   const categories = useMemo(() => Array.from(new Set(services.map(s => s.category))), [services]);
