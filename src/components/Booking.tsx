@@ -1,52 +1,32 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
-  X, 
-  CalendarCheck, 
-  Sparkles, 
-  CheckCircle, 
-  Loader2, 
-  Copy, 
-  Instagram,
-  User,
-  AlertCircle,
-  CalendarDays,
-  CreditCard,
-  AlertTriangle,
-  Check,
-  Camera,
-  MessageCircle,
-  Download,
-  Clock,
-  ChevronRight
+  X, CalendarCheck, Sparkles, CheckCircle, Loader2, 
+  Instagram, User, AlertCircle, CalendarDays, CreditCard, 
+  AlertTriangle, Check, Camera, MessageCircle, Download, 
+  Clock, ChevronRight, Phone
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // CONSTANTS
 const STORAGE_KEY = 'stephs_active_booking';
 
-// Helper Component for Copying Text
+// Helper: Copy Component
 const CopyRow = ({ label, value }: { label: string, value: string }) => {
   const [copied, setCopied] = useState(false);
-  
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
   return (
-    <div className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-lg group hover:border-black transition-colors">
-      <div>
+    <div onClick={handleCopy} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-lg active:bg-gray-50 transition-colors cursor-pointer">
+      <div className="overflow-hidden">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</p>
-        <p className="font-mono font-bold text-sm sm:text-base select-all">{value}</p>
+        <p className="font-mono font-bold text-sm truncate">{value}</p>
       </div>
-      <button 
-        onClick={handleCopy} 
-        type="button" 
-        className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${copied ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-black hover:bg-black hover:text-white'}`}
-      >
-        {copied ? 'COPIED!' : 'COPY'}
-      </button>
+      <span className={`text-[10px] font-bold px-2 py-1 rounded ${copied ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+        {copied ? 'COPIED' : 'COPY'}
+      </span>
     </div>
   );
 };
@@ -76,9 +56,10 @@ export function Booking() {
   
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // ----------------------------------------------------------------
+  // Scroll Ref for UX
+  const contentRef = useRef<HTMLDivElement>(null);
+
   // STATIC DATA
-  // ----------------------------------------------------------------
   const services = [
     { id: 1, category: "Simple Design", name: "Short Length", duration: 90, price: "£25" },
     { id: 2, category: "Simple Design", name: "Medium Length", duration: 90, price: "£30" },
@@ -95,80 +76,11 @@ export function Booking() {
     { id: 13, category: "Toes", name: "Gel Polish Toes", duration: 45, price: "£5" },
   ];
 
-  // Derived Data
-  const categories = useMemo(() => Array.from(new Set(services.map(s => s.category))), []);
+  const categories = useMemo(() => Array.from(new Set(services.map(s => s.category))), [services]);
   const filteredServices = services.filter(s => s.category === activeCategory);
 
-  // ----------------------------------------------------------------
-  // CALENDAR & DOWNLOAD LOGIC
-  // ----------------------------------------------------------------
-  
-  const addToGoogleCalendar = () => {
-    if (!selectedSlot || !selectedService) return;
-    const start = new Date(selectedSlot);
-    const end = new Date(start.getTime() + selectedService.duration * 60000);
-    
-    const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Appt+with+StephsBeautyClinic&dates=${format(start)}/${format(end)}&details=Ref:+${bookingRef}%0AService:+${selectedService.name}&location=StephsBeautyClinic`;
-    window.open(url, '_blank');
-  };
-
-  const downloadIcsFile = () => {
-    if (!selectedSlot || !selectedService) return;
-    
-    // 1. Prepare Dates
-    const start = new Date(selectedSlot);
-    const end = new Date(start.getTime() + selectedService.duration * 60000);
-    const now = new Date();
-    
-    const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
-    
-    // 2. Generate Unique ID (Required for Apple Calendar to accept it seamlessly)
-    const uid = `${now.getTime()}@stephsbeauty.com`;
-
-    // 3. Build ICS Content (Strict format for iOS)
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//StephsBeautyClinic//Booking//EN
-CALSCALE:GREGORIAN
-BEGIN:VEVENT
-UID:${uid}
-DTSTAMP:${format(now)}
-DTSTART:${format(start)}
-DTEND:${format(end)}
-SUMMARY:💅 Appt: StephsBeautyClinic
-DESCRIPTION:Ref: ${bookingRef}\\nService: ${selectedService.name}\\nRemember £10 Deposit is paid!
-LOCATION:StephsBeautyClinic
-STATUS:CONFIRMED
-SEQUENCE:0
-END:VEVENT
-END:VCALENDAR`;
-
-    // 4. Create File Blob
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-
-    // 5. iOS Detection
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-    if (isIOS) {
-        // iOS Magic: Navigating to the file triggers the native "Add to Calendar" sheet
-        window.location.assign(url);
-    } else {
-        // Android/Desktop: Standard Download
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'StephsBeautyAppointment.ics');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-  };
-
-  // ----------------------------------------------------------------
-  // DATE HELPER LOGIC
-  // ----------------------------------------------------------------
-  const isOperatingDay = (date: Date) => [0, 2, 6].includes(date.getDay()); // Sun, Tue, Sat
+  // --- LOGIC: Calendar & API ---
+  const isOperatingDay = (date: Date) => [0, 2, 6].includes(date.getDay()); 
   
   const getSmartStartDate = useCallback(() => {
     const d = new Date();
@@ -189,54 +101,74 @@ END:VCALENDAR`;
     return isNaN(num) ? 0 : num;
   };
 
-  // ----------------------------------------------------------------
-  // EFFECTS (Lifecycle & Cache)
-  // ----------------------------------------------------------------
+  const addToGoogleCalendar = () => {
+    if (!selectedSlot || !selectedService) return;
+    const start = new Date(selectedSlot);
+    const end = new Date(start.getTime() + selectedService.duration * 60000);
+    const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Appt+with+StephsBeautyClinic&dates=${format(start)}/${format(end)}&details=Ref:+${bookingRef}%0AService:+${selectedService.name}&location=StephsBeautyClinic`;
+    window.open(url, '_blank');
+  };
 
-  // Handle Open/Close & Cache Restoration
+  const downloadIcsFile = () => {
+    if (!selectedSlot || !selectedService) return;
+    const start = new Date(selectedSlot);
+    const end = new Date(start.getTime() + selectedService.duration * 60000);
+    const now = new Date();
+    const format = (d: Date) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    const uid = `${now.getTime()}@stephsbeauty.com`;
+    const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//StephsBeautyClinic//Booking//EN\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${format(now)}\nDTSTART:${format(start)}\nDTEND:${format(end)}\nSUMMARY:💅 Appt: StephsBeautyClinic\nDESCRIPTION:Ref: ${bookingRef}\\nService: ${selectedService.name}\\nRemember £10 Deposit is paid!\nLOCATION:StephsBeautyClinic\nSTATUS:CONFIRMED\nSEQUENCE:0\nEND:VEVENT\nEND:VCALENDAR`;
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS) window.location.assign(url);
+    else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'StephsBeautyAppointment.ics');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+  };
+
+  // Auto-scroll to top when step changes
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [step]);
+
+  // Load saved booking state on open
   useEffect(() => {
     if (isOpen) {
-      // 1. Check for saved booking when opening
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          const appointmentDate = new Date(parsed.slot);
-
-          // Only restore if the appointment hasn't passed yet
-          if (appointmentDate > new Date()) {
+          if (new Date(parsed.slot) > new Date()) {
             setBookingRef(parsed.ref);
             setSelectedService(parsed.service);
             setSelectedSlot(parsed.slot);
             setClientDetails(prev => ({ ...prev, name: parsed.clientName || '' }));
-            setStep(5); // Jump straight to the receipt
-            return; // Stop here, don't reset
+            setStep(5);
+            return;
           } else {
-            // It's an old booking, clear it
             localStorage.removeItem(STORAGE_KEY);
           }
-        } catch (e) {
-          console.error("Error parsing saved booking", e);
-        }
+        } catch (e) { console.error(e); }
       }
     } else {
-      // 2. Reset logic when closing
       const timer = setTimeout(() => {
-        setStep(1); 
-        setSelectedService(null); 
-        setSelectedDate(''); 
-        setAvailableSlots([]); 
-        setSelectedSlot(''); 
-        setBookingRef('');
-        setClientDetails({ name: '', instagram: '', phone: '', notes: '' }); 
-        setTermsAccepted(false); 
-        setErrorMsg('');
+        setStep(1); setSelectedService(null); setSelectedDate(''); setAvailableSlots([]); setSelectedSlot(''); setBookingRef('');
+        setClientDetails({ name: '', instagram: '', phone: '', notes: '' }); setTermsAccepted(false); setErrorMsg('');
       }, 300);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
-  // Auto-fetch slots if we move to step 2 without a date (should default to smart date)
+  // Fetch slots when date selected
   useEffect(() => {
       if (isOpen && step === 2 && !selectedDate) {
           const smartDate = getSmartStartDate();
@@ -245,61 +177,34 @@ END:VCALENDAR`;
       }
   }, [isOpen, step, getSmartStartDate]);
 
-  // ----------------------------------------------------------------
-  // API ACTIONS
-  // ----------------------------------------------------------------
-
   const fetchSlots = async (dateStr: string) => {
-    setIsLoading(true); 
-    setErrorMsg(''); 
-    setAvailableSlots([]);
-    
+    setIsLoading(true); setErrorMsg(''); setAvailableSlots([]);
     try {
         const d = new Date(dateStr);
-        if (!isOperatingDay(d)) { 
-            setIsLoading(false); 
-            return; 
-        }
-        
+        if (!isOperatingDay(d)) { setIsLoading(false); return; }
         const { data, error } = await supabase.functions.invoke('stephs-booking-handler', {
-            body: { 
-                action: 'get-availability', 
-                payload: { 
-                    date: dateStr, 
-                    durationMinutes: selectedService?.duration || 60 
-                } 
-            }
+            body: { action: 'get-availability', payload: { date: dateStr, durationMinutes: selectedService?.duration || 60 } }
         });
-
         if (error) throw error;
         if (data.error) setErrorMsg(data.error);
         else setAvailableSlots(data.slots || []);
-        
-    } catch (err) { 
-        setErrorMsg("Connection failed. Try again."); 
-    } finally { 
-        setIsLoading(false); 
-    }
+    } catch (err) { setErrorMsg("Connection failed. Try again."); } finally { setIsLoading(false); }
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const date = e.target.value; 
-    setSelectedDate(date); 
-    setSelectedSlot(''); 
-    fetchSlots(date);
+    const date = e.target.value; setSelectedDate(date); setSelectedSlot(''); fetchSlots(date);
+  };
+
+  // Strict Phone Input Handler
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9\s+]/g, '');
+    setClientDetails({ ...clientDetails, phone: value });
   };
 
   const handleConfirmBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!termsAccepted) { 
-        alert("You must agree to the deposit policy."); 
-        return; 
-    }
-    
-    setIsLoading(true); 
-    setErrorMsg('');
-
-    // Sanitize Instagram handle
+    if (!termsAccepted) return;
+    setIsLoading(true); setErrorMsg('');
     let insta = clientDetails.instagram.trim();
     if (insta.includes('instagram.com/')) insta = insta.split('instagram.com/')[1].replace(/\/$/, '');
     if (insta && !insta.startsWith('@')) insta = '@' + insta;
@@ -320,35 +225,17 @@ END:VCALENDAR`;
           }
         }
       });
-
       if (error) throw error; 
       if (data.error) throw new Error(data.error);
-
-      // Success! Set Ref
       setBookingRef(data.referenceCode);
-
-      // SAVE TO LOCAL STORAGE (CACHE)
-      const bookingData = {
-        ref: data.referenceCode,
-        service: selectedService,
-        slot: selectedSlot,
-        clientName: clientDetails.name
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(bookingData));
-
-      // Move to Payment Step
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ref: data.referenceCode, service: selectedService, slot: selectedSlot, clientName: clientDetails.name
+      }));
       setStep(4);
-
-    } catch (err: any) { 
-        setErrorMsg(err.message || "Booking failed."); 
-    } finally { 
-        setIsLoading(false); 
-    }
+    } catch (err: any) { setErrorMsg(err.message || "Booking failed."); } finally { setIsLoading(false); }
   };
 
-  // ----------------------------------------------------------------
-  // RENDER
-  // ----------------------------------------------------------------
+  // --- RENDER ---
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
@@ -366,49 +253,64 @@ END:VCALENDAR`;
     );
   }
 
+  // --- MAIN MODAL LAYOUT ---
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-white w-full max-w-md h-[90vh] md:h-[85vh] rounded-3xl border-4 border-black shadow-[8px_8px_0px_#FF69B4] flex flex-col overflow-hidden relative">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center bg-black/80 backdrop-blur-sm transition-all duration-300">
+      
+      {/* Main Container */}
+      <div className="w-full h-[100dvh] md:h-[85vh] md:max-w-md bg-white md:rounded-3xl flex flex-col relative overflow-hidden shadow-2xl">
         
         {/* Header */}
-        <div className="bg-[#FF69B4] p-4 flex justify-between items-center border-b-4 border-black shrink-0 relative z-20">
+        <div className="bg-[#FF69B4] p-3 md:p-4 flex justify-between items-center border-b-4 border-black shrink-0 relative z-30">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">💅</span>
-            <h3 className="font-['Pacifico'] text-xl text-white tracking-wide">Steph's Calendar</h3>
+            <span className="text-xl md:text-2xl">💅</span>
+            <h3 className="font-['Pacifico'] text-lg md:text-xl text-white tracking-wide">Steph's Calendar</h3>
           </div>
           <button 
             onClick={() => setIsOpen(false)} 
-            className="bg-white text-black p-2 rounded-full border-2 border-black hover:bg-gray-100 transition-colors"
+            className="bg-white text-black p-1.5 md:p-2 rounded-full border-2 border-black hover:bg-gray-100 transition-colors active:scale-90"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] flex flex-col relative z-10">
+        {/* Progress Bar */}
+        {step < 5 && (
+            <div className="w-full h-1.5 bg-gray-100 relative z-20">
+                <div 
+                    className="h-full bg-black transition-all duration-500 ease-out" 
+                    style={{ width: `${(step / 4) * 100}%` }}
+                ></div>
+            </div>
+        )}
+
+        {/* Scrollable Content Area */}
+        <div 
+            ref={contentRef}
+            className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 flex flex-col relative z-10 pb-4"
+        >
           
-          {/* STEP 1: Services (Redesigned) */}
+          {/* STEP 1: SERVICES */}
           {step === 1 && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right duration-300">
+            <div className="flex flex-col animate-in slide-in-from-right duration-300">
               
-              {/* Sticky Top Section */}
-              <div className="bg-white border-b-4 border-black p-4 pb-2 sticky top-0 z-20 shadow-sm">
-                 <h2 className="font-['Montserrat'] font-bold text-2xl mb-3 text-center">Select Service</h2>
-                 
+              {/* Sticky Filters */}
+              <div className="bg-white border-b-2 border-black p-3 sticky top-0 z-20 shadow-sm">
                  {/* Warning Banner */}
-                 <div className="bg-yellow-50 border-2 border-black p-2 rounded-lg text-[10px] font-bold text-center flex items-center justify-center gap-2 mb-4">
-                    <AlertCircle size={14} className="text-red-500"/> STRICTLY 1 PERSON PER BOOKING
+                 <div className="bg-yellow-50 border border-black p-1.5 rounded text-[10px] font-bold text-center flex items-center justify-center gap-2 mb-3">
+                    <AlertCircle size={12} className="text-red-500"/> STRICTLY 1 PERSON PER BOOKING
                  </div>
 
-                 {/* Categories Tabs */}
-                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+                 {/* Categories */}
+                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth snap-x">
                     {categories.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`whitespace-nowrap px-4 py-2 rounded-full font-bold text-sm transition-all border-2 ${
+                        className={`whitespace-nowrap px-4 py-1.5 rounded-full font-bold text-xs transition-all border-2 snap-start ${
                           activeCategory === cat 
                           ? 'bg-black text-white border-black shadow-[2px_2px_0px_#FF69B4]' 
-                          : 'bg-white text-gray-500 border-gray-200 hover:border-black hover:text-black'
+                          : 'bg-white text-gray-500 border-gray-200'
                         }`}
                       >
                         {cat}
@@ -418,93 +320,86 @@ END:VCALENDAR`;
               </div>
 
               {/* Service List */}
-              <div className="p-4 space-y-3 pb-8">
+              <div className="p-3 space-y-3 pb-8">
                 {filteredServices.map((service) => (
                     <button 
                       key={service.id} 
                       onClick={() => { setSelectedService(service); setStep(2); }} 
-                      className="w-full bg-white p-3 border-2 border-black rounded-xl shadow-[2px_2px_0px_#ccc] hover:shadow-[4px_4px_0px_#FF69B4] hover:bg-[#FFF0F5] hover:-translate-y-0.5 transition-all flex justify-between items-center group"
+                      className="w-full bg-white p-4 border-2 border-black rounded-xl shadow-sm hover:shadow-[4px_4px_0px_#FF69B4] active:scale-[0.98] transition-all flex justify-between items-center group relative overflow-hidden"
                     >
-                      <div className="text-left flex-1 pr-4">
-                        <h3 className="font-bold text-base group-hover:text-[#FF69B4] transition-colors">{service.name}</h3>
-                        <div className="flex items-center gap-1 text-xs text-gray-500 font-medium mt-1">
+                      <div className="text-left flex-1 pr-4 z-10">
+                        <h3 className="font-bold text-base text-gray-900 group-hover:text-[#FF69B4]">{service.name}</h3>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mt-1">
                            <Clock size={12} />
                            <span>{service.duration} mins</span>
+                           <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                           <span className="text-black font-bold">{service.price}</span>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <span className="bg-[#FF69B4] text-white font-black text-sm px-3 py-1 rounded-full border border-black shadow-[1px_1px_0px_#000]">
-                            {service.price}
-                        </span>
-                        <ChevronRight className="text-gray-300 group-hover:text-black transition-colors" size={20}/>
+                      <div className="bg-gray-50 p-2 rounded-full border border-gray-100 group-hover:bg-[#FF69B4] group-hover:border-black transition-colors z-10">
+                         <ChevronRight className="text-gray-400 group-hover:text-white" size={16}/>
                       </div>
                     </button>
                   ))}
-                  
-                  {/* Empty state padding to scroll to bottom nicely */}
-                  <div className="h-4"></div>
               </div>
             </div>
           )}
 
-           {/* STEP 2: Date */}
+           {/* STEP 2: DATE & TIME */}
            {step === 2 && (
-            <div className="p-6 space-y-6 animate-in slide-in-from-right duration-300">
-              <button onClick={() => setStep(1)} className="text-xs font-bold underline hover:text-[#FF69B4]">← Back to Services</button>
-              <div>
-                <h2 className="font-['Montserrat'] font-bold text-2xl mb-1">Pick a Slot</h2>
-                <div className="text-sm text-gray-500 bg-white border-2 border-black p-3 rounded-lg mb-4 shadow-[2px_2px_0px_#ccc] space-y-2">
-                    <div className="flex items-start gap-3">
-                        <CalendarDays size={20} className="text-[#FF69B4] mt-0.5 shrink-0"/>
-                        <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="font-bold text-black text-xs uppercase">Availability</p>
-                                <span className="bg-[#FF69B4] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">5 DAYS NOTICE</span>
-                            </div>
-                            <p className="text-xs font-medium leading-tight mb-2">We are open <span className="font-bold text-black">Tue, Sat, Sun</span>.</p>
-                            <p className="text-xs font-bold text-green-600 bg-green-50 p-1 rounded inline-block border border-green-200">Next Opening: {getReadableDate(getSmartStartDate())}</p>
-                        </div>
-                    </div>
+            <div className="p-4 space-y-4 animate-in slide-in-from-right duration-300 flex flex-col h-full">
+              <button onClick={() => setStep(1)} className="text-xs font-bold text-gray-400 hover:text-black self-start flex items-center gap-1 mb-2">← BACK TO SERVICES</button>
+              
+              <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_#000]">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="font-['Montserrat'] font-bold text-xl">Pick a Slot</h2>
+                    <span className="bg-[#FF69B4] text-white text-[10px] font-bold px-2 py-0.5 rounded border border-black">5 DAYS NOTICE</span>
                 </div>
-                <div className="bg-white/50 p-1 rounded-xl">
-                    <label className="block font-bold text-xs mb-1 ml-1 text-gray-500 uppercase">Select Date</label>
+                
+                <div className="relative">
+                    <div className="absolute top-3 left-3 pointer-events-none text-gray-500">
+                        <CalendarDays size={20}/>
+                    </div>
                     <input 
                         type="date" 
                         min={new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0]} 
                         onChange={handleDateChange} 
                         value={selectedDate} 
-                        className="w-full p-3 border-4 border-black rounded-xl font-['Montserrat'] font-bold text-base outline-none focus:border-[#FF69B4] focus:shadow-[4px_4px_0px_#FF69B4] transition-all" 
+                        className="w-full pl-10 pr-3 py-3 bg-gray-50 border-2 border-gray-200 rounded-lg font-['Montserrat'] font-bold text-base md:text-sm outline-none focus:border-black focus:bg-white transition-all appearance-none" 
                     />
                 </div>
+                
+                {!isOperatingDay(new Date(selectedDate)) && selectedDate && (
+                    <div className="mt-3 text-xs font-medium text-red-500 bg-red-50 p-2 rounded flex gap-2">
+                        <AlertCircle size={14}/>
+                        <span>Closed. Try Tue, Sat, or Sun.</span>
+                    </div>
+                )}
               </div>
+
               {selectedDate && (
-                <div className="animate-in fade-in duration-500">
-                  <h3 className="font-bold mb-3">Available Times</h3>
+                <div className="flex-1 flex flex-col">
+                  <h3 className="font-bold text-sm text-gray-500 uppercase mb-2 ml-1">Available Times</h3>
+                  
                   {isLoading ? (
-                    <div className="flex justify-center py-8">
+                    <div className="flex-1 flex items-center justify-center min-h-[150px]">
                         <Loader2 className="animate-spin text-[#FF69B4] w-8 h-8" />
                     </div>
                   ) : errorMsg ? (
-                    <div className="bg-red-50 text-red-500 p-3 rounded-lg font-bold text-sm text-center border-2 border-red-100">{errorMsg}</div>
-                  ) : !isOperatingDay(new Date(selectedDate)) ? (
-                    <div className="bg-gray-100 border-2 border-gray-300 p-4 rounded-xl text-center opacity-80">
-                        <p className="text-gray-500 font-bold mb-1">Clinic Closed 😴</p>
-                        <p className="text-xs text-gray-500">Please select Tue, Sat, or Sun.</p>
-                    </div>
+                    <div className="bg-red-50 text-red-500 p-4 rounded-lg font-bold text-sm text-center border border-red-100">{errorMsg}</div>
                   ) : availableSlots.length === 0 ? (
-                    <div className="bg-red-50 border-2 border-red-100 p-4 rounded-xl text-center">
-                        <p className="text-red-500 font-bold mb-1">Fully Booked</p>
+                    <div className="bg-gray-100 border border-gray-300 p-6 rounded-xl text-center">
+                        <p className="text-gray-500 font-bold">No slots available 😔</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-2 pb-6">
                       {availableSlots.map((slot) => {
                         const dateObj = new Date(slot);
                         return (
                             <button 
                                 key={slot} 
                                 onClick={() => { setSelectedSlot(slot); setStep(3); }} 
-                                className="bg-white py-3 border-2 border-black rounded-lg hover:bg-[#FF69B4] hover:text-white font-bold shadow-[2px_2px_0px_#333] active:translate-y-1 active:shadow-none"
+                                className="bg-white py-3 border-2 border-gray-200 rounded-lg hover:border-[#FF69B4] hover:bg-[#FFF0F5] hover:text-[#FF69B4] active:bg-black active:text-white active:border-black font-bold text-sm transition-all"
                             >
                                 {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </button>
@@ -517,183 +412,237 @@ END:VCALENDAR`;
             </div>
           )}
 
-          {/* STEP 3: Details & Notes */}
+          {/* STEP 3: FORM DETAILS */}
           {step === 3 && (
-            <form onSubmit={handleConfirmBooking} className="p-6 space-y-5 animate-in slide-in-from-right duration-300">
-              <button type="button" onClick={() => setStep(2)} className="text-xs font-bold underline hover:text-[#FF69B4]">← Back to Times</button>
-              <h2 className="font-['Montserrat'] font-bold text-2xl">Your Details</h2>
-              <div className="bg-[#FFF0F5] p-4 border-2 border-black rounded-xl shadow-[4px_4px_0px_#FF69B4]">
-                <div className="space-y-1 font-medium">
-                    <p className="text-xs font-bold text-gray-500 uppercase">{selectedService?.category}</p>
-                    <p className="text-lg font-bold leading-none">{selectedService?.name}</p>
-                    <p className="text-2xl font-['Pacifico'] mt-2">{new Date(selectedSlot).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="relative">
-                    <User className="absolute left-4 top-4 text-gray-400" size={20}/>
-                    <input required type="text" value={clientDetails.name} onChange={e => setClientDetails({...clientDetails, name: e.target.value})} className="w-full p-3 pl-12 border-4 border-black rounded-xl outline-none focus:border-[#FF69B4] text-base" placeholder="Full Name" />
-                </div>
-                <div className="relative">
-                    <Instagram className="absolute left-4 top-4 text-gray-400" size={20}/>
-                    <input required type="text" value={clientDetails.instagram} onChange={e => setClientDetails({...clientDetails, instagram: e.target.value})} className="w-full p-3 pl-12 border-4 border-black rounded-xl outline-none focus:border-[#FF69B4] text-base" placeholder="Instagram (@username)" />
-                </div>
-                <div className="relative">
-                    <span className="absolute left-4 top-4 text-gray-400 font-bold text-sm">📞</span>
-                    <input required type="tel" value={clientDetails.phone} onChange={e => setClientDetails({...clientDetails, phone: e.target.value})} className="w-full p-3 pl-12 border-4 border-black rounded-xl outline-none focus:border-[#FF69B4] text-base" placeholder="Phone Number" />
-                </div>
-                
-                <div className="relative">
-                    <textarea 
-                        value={clientDetails.notes} 
-                        onChange={e => setClientDetails({...clientDetails, notes: e.target.value})}
-                        className="w-full p-3 border-4 border-black rounded-xl outline-none focus:border-[#FF69B4] text-base min-h-[100px] resize-none"
-                        placeholder="Any notes? (e.g. broken nail, specific design idea...)"
-                    />
-                </div>
-              </div>
-
-              {/* FIXED CHECKBOX: Using bg-white OR bg-black, never both */}
-              <label className="flex items-start gap-3 p-3 bg-red-50 border-2 border-red-100 rounded-xl cursor-pointer hover:border-red-300 transition-colors select-none">
-                  <input type="checkbox" className="hidden" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)}/>
-                  <div className={`w-5 h-5 rounded border-2 border-black flex items-center justify-center mt-0.5 transition-colors ${termsAccepted ? 'bg-black' : 'bg-white'}`}>
-                    {termsAccepted && <Check size={14} className="text-white"/>}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs font-bold text-red-600 uppercase">Required</p>
-                    <p className="text-xs text-gray-700 font-medium leading-tight">I understand that the <span className="font-bold">£10 deposit is NON-REFUNDABLE</span>.</p>
-                  </div>
-              </label>
-
-              {errorMsg && <p className="text-red-500 font-bold text-sm text-center">{errorMsg}</p>}
-              <button disabled={isLoading || !termsAccepted} type="submit" className="w-full py-4 bg-black text-white font-['Montserrat'] font-black text-lg uppercase rounded-xl hover:bg-[#FF69B4] shadow-[4px_4px_0px_#000] active:translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                {isLoading ? <Loader2 className="animate-spin" /> : 'Confirm Booking'}
-              </button>
-            </form>
-          )}
-
-          {/* STEP 4: Payment Instructions */}
-          {step === 4 && (
-            <div className="p-6 text-center py-4 animate-in zoom-in space-y-4 h-full flex flex-col justify-start">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-                <h2 className="font-['Pacifico'] text-2xl text-[#FF69B4]">Pending!</h2>
-              </div>
-              
-              <div className="bg-red-50 border-4 border-red-500 p-4 rounded-xl shadow-[4px_4px_0px_#ef4444] text-left">
-                  <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-8 h-8 text-red-600 shrink-0 animate-pulse" />
-                      <div className="w-full">
-                        <h4 className="font-black text-sm uppercase text-red-600">CRITICAL: USE THIS REFERENCE</h4>
-                        <p className="text-xs font-bold text-gray-800 leading-tight mb-2">Payments sent without this code cannot be tracked.</p>
-                        <CopyRow label="Mandatory Reference Code" value={bookingRef} />
-                      </div>
-                  </div>
-              </div>
-              
-              <div className="bg-[#FFF0F5] border-2 border-black p-4 rounded-xl relative text-left">
-                <div className="flex items-center gap-2 mb-3 border-b border-black/10 pb-2">
-                    <CreditCard size={16} className="text-[#FF69B4]"/>
-                    <p className="text-xs font-bold text-gray-500 uppercase">Bank Details</p>
-                </div>
-                <div className="space-y-2">
-                   <CopyRow label="Account Name" value="MISS STEFANI A DO" />
-                   <CopyRow label="Sort Code" value="77-19-38" />
-                   <CopyRow label="Account Number" value="55982968" />
-                </div>
-              </div>
-
-               {(() => {
-                    const total = parsePrice(selectedService?.price); 
-                    const deposit = 10; 
-                    const remaining = total - deposit;
-                    return (
-                        <div className="flex flex-col gap-1 bg-gray-100 p-3 rounded-lg border-2 border-gray-200">
-                            <div className="flex justify-between text-xs text-gray-500"><span>Total Service:</span> <span>£{total}</span></div>
-                            <div className="flex justify-between text-xs text-gray-500"><span>Deposit Due:</span> <span>£{deposit}</span></div>
-                            <div className="flex justify-between font-bold text-black border-t border-gray-300 pt-1 mt-1"><span>Pay on Day:</span> <span>£{remaining}</span></div>
+            <div className="flex flex-col h-full">
+                <div className="p-4 space-y-4 animate-in slide-in-from-right duration-300 pb-28">
+                    <button type="button" onClick={() => setStep(2)} className="text-xs font-bold text-gray-400 hover:text-black flex items-center gap-1">← CHANGE TIME</button>
+                    
+                    <div className="bg-[#FFF0F5] p-4 border-l-4 border-[#FF69B4] rounded-r-lg">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{selectedService?.category}</p>
+                        <p className="text-xl font-black">{selectedService?.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="bg-black text-white text-xs font-bold px-2 py-0.5 rounded">{getReadableDate(selectedSlot)}</span>
+                            <span className="text-sm font-bold">{new Date(selectedSlot).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                         </div>
-                    );
-                })()}
+                    </div>
+                    
+                    <form id="booking-form" onSubmit={handleConfirmBooking} className="space-y-3">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold ml-1">FULL NAME</label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-3.5 text-gray-400" size={18}/>
+                                <input 
+                                  required 
+                                  type="text" 
+                                  value={clientDetails.name} 
+                                  onChange={e => setClientDetails({...clientDetails, name: e.target.value})} 
+                                  className="w-full p-3 pl-10 border-2 border-gray-200 rounded-xl outline-none focus:border-black focus:shadow-[0_4px_10px_rgba(0,0,0,0.1)] transition-all text-base md:text-sm" 
+                                  placeholder="Jane Doe" 
+                                />
+                            </div>
+                        </div>
 
-              <button 
-                onClick={() => setStep(5)} 
-                className="w-full py-3 bg-[#FF69B4] text-white font-bold rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1"
-              >
-                I've Sent the Payment!
-              </button>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold ml-1">INSTAGRAM</label>
+                                <div className="relative">
+                                    <Instagram className="absolute left-3 top-3.5 text-gray-400" size={18}/>
+                                    <input 
+                                      required 
+                                      type="text" 
+                                      value={clientDetails.instagram} 
+                                      onChange={e => setClientDetails({...clientDetails, instagram: e.target.value})} 
+                                      className="w-full p-3 pl-10 border-2 border-gray-200 rounded-xl outline-none focus:border-black transition-all text-base md:text-sm" 
+                                      placeholder="@username" 
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold ml-1">PHONE</label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-3.5 text-gray-400" size={18}/>
+                                    <input 
+                                      required 
+                                      type="tel" 
+                                      value={clientDetails.phone} 
+                                      onChange={handlePhoneChange} 
+                                      className="w-full p-3 pl-10 border-2 border-gray-200 rounded-xl outline-none focus:border-black transition-all text-base md:text-sm" 
+                                      placeholder="07123..." 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold ml-1">NOTES (OPTIONAL)</label>
+                            <textarea 
+                                value={clientDetails.notes} 
+                                onChange={e => setClientDetails({...clientDetails, notes: e.target.value})}
+                                className="w-full p-3 border-2 border-gray-200 rounded-xl outline-none focus:border-black transition-all text-base md:text-sm min-h-[80px] resize-none"
+                                placeholder="Designs, broken nails, etc..."
+                            />
+                        </div>
+
+                        <label className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl cursor-pointer active:bg-gray-50 transition-colors select-none mt-2">
+                            <input type="checkbox" className="hidden" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)}/>
+                            <div className={`w-5 h-5 rounded border-2 border-black flex items-center justify-center mt-0.5 shrink-0 transition-colors ${termsAccepted ? 'bg-black' : 'bg-white'}`}>
+                                {termsAccepted && <Check size={14} className="text-white"/>}
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest">POLICY AGREEMENT</p>
+                                <p className="text-xs text-gray-600 leading-tight mt-0.5">I understand that the <span className="font-bold text-black">£10 deposit is NON-REFUNDABLE</span> if I cancel within 48 hours.</p>
+                            </div>
+                        </label>
+                    </form>
+                </div>
+
+                {/* Fixed Bottom Action Bar for Mobile */}
+                <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-20 pb-8 md:pb-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+                    {errorMsg && <p className="text-red-500 font-bold text-xs text-center mb-2">{errorMsg}</p>}
+                    <button 
+                        form="booking-form"
+                        disabled={isLoading || !termsAccepted} 
+                        type="submit" 
+                        className="w-full py-4 bg-black text-white font-['Montserrat'] font-black text-lg uppercase rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg"
+                    >
+                        {isLoading ? <Loader2 className="animate-spin" /> : 'Confirm Booking'}
+                    </button>
+                </div>
             </div>
           )}
 
-          {/* STEP 5: FINAL RECEIPT */}
+          {/* STEP 4: PAYMENT */}
+          {step === 4 && (
+            <div className="flex flex-col h-full relative">
+                <div className="p-5 text-center animate-in zoom-in space-y-5 pb-32">
+                    <div className="flex flex-col items-center gap-1">
+                        <div className="bg-green-100 p-3 rounded-full mb-1">
+                            <CheckCircle className="w-8 h-8 text-green-600" />
+                        </div>
+                        <h2 className="font-['Montserrat'] font-bold text-xl text-black">Slot Reserved!</h2>
+                        <p className="text-sm text-gray-500">Please send deposit to secure it.</p>
+                    </div>
+                    
+                    <div className="bg-white border-2 border-red-500 p-4 rounded-xl shadow-[4px_4px_0px_#fca5a5] text-left relative overflow-hidden">
+                        <div className="absolute -right-4 -top-4 bg-red-500 w-16 h-16 rounded-full opacity-10"></div>
+                        <h4 className="font-black text-xs uppercase text-red-500 flex items-center gap-1 mb-2">
+                            <AlertTriangle size={14}/> Mandatory Reference
+                        </h4>
+                        <CopyRow label="Use as Payment Reference" value={bookingRef} />
+                    </div>
+                    
+                    <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl text-left space-y-2">
+                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
+                            <CreditCard size={16} className="text-gray-400"/>
+                            <p className="text-xs font-bold text-gray-500 uppercase">Bank Transfer</p>
+                        </div>
+                        <CopyRow label="Sort Code" value="77-19-38" />
+                        <CopyRow label="Account Number" value="55982968" />
+                        <CopyRow label="Account Name" value="MISS STEFANI A DO" />
+                    </div>
+
+                    {/* Price Breakdown */}
+                    {(() => {
+                        const total = parsePrice(selectedService?.price); 
+                        const deposit = 10; 
+                        return (
+                          <div>
+                            <div className="bg-black/5 p-3 rounded-lg flex justify-between items-center px-6">
+                                <div className="text-left">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase">Deposit Due</p>
+                                    <p className="text-xl font-bold text-black">£{deposit}</p>
+                                </div>
+                                <div className="h-8 w-[1px] bg-gray-300"></div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase">Due at Appt</p>
+                                    <p className="text-xl font-bold text-gray-400">£{total - deposit}</p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-center text-gray-500 mt-2 font-medium">
+                                The remaining <span className="font-bold text-black">£{total - deposit}</span> is to be paid on the day.
+                            </p>
+                          </div>
+                        );
+                    })()}
+                </div>
+
+                {/* Fixed Bottom Action */}
+                <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-20 pb-8 md:pb-4">
+                    <button 
+                        onClick={() => setStep(5)} 
+                        className="w-full py-4 bg-[#FF69B4] text-white font-bold text-lg rounded-xl shadow-[0_4px_0px_#db2777] active:translate-y-[2px] active:shadow-none transition-all"
+                    >
+                        I've Sent the Payment!
+                    </button>
+                </div>
+            </div>
+          )}
+
+          {/* STEP 5: RECEIPT */}
           {step === 5 && (
-            <div className="p-6 text-center py-4 animate-in zoom-in space-y-5 h-full flex flex-col justify-start">
-               <div className="flex items-center justify-center gap-2 mb-2">
-                <Sparkles className="w-8 h-8 text-[#FFD700]" />
-                <h2 className="font-['Pacifico'] text-2xl text-black">All Done!</h2>
+            <div className="p-5 text-center animate-in zoom-in space-y-6 pb-8">
+               <div className="flex flex-col items-center gap-1 mt-4">
+                <Sparkles className="w-10 h-10 text-[#FFD700] animate-pulse" />
+                <h2 className="font-['Pacifico'] text-3xl text-black">All Done!</h2>
+                <p className="text-gray-500 text-sm">We'll verify your payment shortly.</p>
                </div>
                
-               <div className="bg-black text-white p-4 rounded-xl shadow-[4px_4px_0px_#ccc] text-left">
-                   <div className="flex items-center gap-2 mb-2 text-[#FFD700] font-bold uppercase text-xs"><Camera size={16}/> Recommendation</div>
-                   <p className="text-sm font-medium leading-snug">Please <strong>take a screenshot</strong> of this screen for your records.</p>
+               <div className="bg-black text-white p-3 rounded-lg text-sm flex items-center justify-center gap-2">
+                   <Camera size={16} className="text-orange-400"/>
+                   <span>Screenshot this screen!</span>
                </div>
 
-               <div className="bg-white border-4 border-black p-5 rounded-xl text-left space-y-3 relative">
-                   <div className="absolute top-3 right-3"><div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div></div>
+               <div className="bg-white border-[3px] border-black p-6 rounded-2xl text-left space-y-4 relative shadow-[8px_8px_0px_rgba(0,0,0,0.1)]">
+                   <div className="absolute top-4 right-4 w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
                    <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase">Reference</p>
-                    <p className="font-mono text-xl font-bold">{bookingRef}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Booking Reference</p>
+                    <p className="font-mono text-2xl font-black tracking-widest">{bookingRef}</p>
+                   </div>
+                   <div className="h-[1px] bg-gray-100 w-full"></div>
+                   <div className="grid grid-cols-2 gap-4">
+                       <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">Date</p>
+                        <p className="font-bold text-sm">{getReadableDate(selectedSlot)}</p>
+                       </div>
+                       <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">Time</p>
+                        <p className="font-bold text-sm">{new Date(selectedSlot).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                       </div>
                    </div>
                    <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase">Service</p>
-                    <p className="font-bold">{selectedService?.name}</p>
-                   </div>
-                   <div>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase">Time</p>
-                    <p className="font-bold">{new Date(selectedSlot).toLocaleString('en-GB', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase">Service</p>
+                    <p className="font-bold text-sm">{selectedService?.name}</p>
                    </div>
                </div>
 
                <div className="grid grid-cols-2 gap-3">
-                   <button 
-                    onClick={addToGoogleCalendar} 
-                    className="bg-gray-100 p-3 rounded-lg text-xs font-bold border border-gray-300 hover:bg-white hover:border-black transition-all flex flex-col items-center gap-1"
-                   >
-                       <CalendarDays size={20} className="text-blue-600"/> Add to Google
+                   <button onClick={addToGoogleCalendar} className="bg-gray-50 p-3 rounded-xl text-xs font-bold border border-gray-200 active:bg-gray-100 transition-all flex flex-col items-center gap-2">
+                       <CalendarDays size={20} className="text-blue-600"/> <span>Add to Google</span>
                    </button>
-                   <button 
-                    onClick={downloadIcsFile} 
-                    className="bg-gray-100 p-3 rounded-lg text-xs font-bold border border-gray-300 hover:bg-white hover:border-black transition-all flex flex-col items-center gap-1"
-                   >
-                       <Download size={20} className="text-black"/> Add to Apple/iOS
+                   <button onClick={downloadIcsFile} className="bg-gray-50 p-3 rounded-xl text-xs font-bold border border-gray-200 active:bg-gray-100 transition-all flex flex-col items-center gap-2">
+                       <Download size={20} className="text-gray-700"/> <span>Add to Apple</span>
                    </button>
                </div>
 
                <button 
                 onClick={() => window.open('https://www.instagram.com/stephsbeautyclinic/', '_blank')}
-                className="w-full py-4 bg-[#FF69B4] text-white font-bold rounded-xl border-2 border-black shadow-[4px_4px_0px_#000] active:translate-y-1 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                >
-                   <MessageCircle size={20}/> Message Steph on Insta
+                   <MessageCircle size={20}/> Message on Instagram
                </button>
 
-               {/* Button to Clear Cache and Book Again */}
-               <div className="pt-4 border-t border-gray-200 mt-4">
-                    <button 
-                        onClick={() => {
-                            if (window.confirm("Start a new booking? This will clear the current receipt view.")) {
-                                localStorage.removeItem(STORAGE_KEY);
-                                setStep(1);
-                                setSelectedService(null);
-                                setSelectedSlot('');
-                                setBookingRef('');
-                            }
-                        }}
-                        className="text-xs font-bold text-gray-400 hover:text-black underline w-full text-center"
-                    >
-                        Book a New Appointment / Clear Receipt
-                    </button>
-               </div>
+               <button 
+                onClick={() => {
+                    if (window.confirm("Start a new booking?")) {
+                        localStorage.removeItem(STORAGE_KEY);
+                        setStep(1); setSelectedService(null); setSelectedSlot(''); setBookingRef('');
+                    }
+                }}
+                className="text-xs font-bold text-gray-400 hover:text-black underline pt-4"
+               >
+                 Start New Booking
+               </button>
             </div>
           )}
 
