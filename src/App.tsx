@@ -1,4 +1,4 @@
-import { useState } from 'react'; // 1. Import useState
+import { useState } from 'react';
 import { Hero } from './components/Hero';
 import { About } from './components/About';
 import { Lookbook } from './components/Lookbook';
@@ -6,23 +6,32 @@ import { HowToOrder } from './components/HowToOrder';
 import { Policies } from './components/Policies';
 import { FloatingElements } from './components/FloatingElements';
 import { Booking } from './components/Booking';
+import { FAQ } from './components/FAQ';
+import { Contact } from './components/Contact';
 
 function App() {
-  // 2. Create the state to control the booking modal
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   return (
     <div className="min-h-screen relative overflow-x-hidden text-[#333] pb-20">
+      {/* Background Animation */}
       <FloatingElements />
+      
+      {/* Main Content */}
       <Hero />
       <About />
       
-      {/* 3. Pass the "open" function to Lookbook */}
+      {/* Services Grid - Passes the open function to the Nails card */}
       <Lookbook onOpenBooking={() => setIsBookingOpen(true)} />
       
+      {/* Information Section Wrapper */}
       <div className="bg-white border-t-8 border-black mt-12">
         <HowToOrder />
         <Policies />
+        <FAQ />
+        <Contact />
+        
+        {/* Footer */}
         <footer className="bg-[#FF69B4] border-t-8 border-black py-12 px-6 text-center">
             <p className="font-['Montserrat'] font-bold text-white mb-8">
               © {new Date().getFullYear()} Steph's World
@@ -38,7 +47,7 @@ function App() {
         </footer>
       </div>
 
-      {/* 4. Pass the state and setter to Booking */}
+      {/* Booking Modal Overlay */}
       <Booking 
         isOpen={isBookingOpen} 
         setIsOpen={setIsBookingOpen} 

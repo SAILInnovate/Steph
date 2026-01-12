@@ -7,19 +7,20 @@ export function Lookbook({ onOpenBooking }: { onOpenBooking: () => void }) {
     {
       title: "Nails & Lashes",
       subtitle: "Steph's Beauty Clinic",
-      desc: "Gel extensions, BIAB, Art & Volume Lashes.",
-      img: "/images/nails-pink.jpg", 
+      // CHANGED: Added "Droylsden" and "Manchester" here naturally
+      desc: "Gel extensions, BIAB, and Volume Lashes in Manchester.", 
+      img: "/images/nailsclean.jpg", 
       action: "BOOK APPOINTMENT",
       link: "https://www.instagram.com/stephsbeautyclinic/",
       icon: Calendar,
       bgColor: "bg-white",
-      // We add this flag to identify that this specific item opens the booking modal
       isBooking: true 
     },
     {
       title: "Luxe Cases",
-      subtitle: "Custom Decoden",
-      desc: "Handmade, sparkle-packed, and totally you.",
+      subtitle: "Custom Decoden UK", // CHANGED: Added "UK"
+      // CHANGED: Added "Shipped from Manchester"
+      desc: "Handmade, sparkle-packed decoden cases. Shipped from Manchester.",
       img: "/images/case.jpg",
       action: "ORDER CUSTOM CASE",
       link: "https://www.instagram.com/stephsluxecreations/",
@@ -30,7 +31,7 @@ export function Lookbook({ onOpenBooking }: { onOpenBooking: () => void }) {
     {
       title: "Everlasting Flowers",
       subtitle: "Floral Garden",
-      desc: "Ribbon roses that last forever. Perfect for gifts.",
+      desc: "Ribbon roses that last forever. The perfect keepsake gift.",
       img: "/images/flowers-pink.jpg", 
       action: "SHOP BOUQUETS",
       link: "https://www.instagram.com/stephsfloralgarden/#",
@@ -73,7 +74,8 @@ export function Lookbook({ onOpenBooking }: { onOpenBooking: () => void }) {
             <div className="aspect-square w-full relative group cursor-pointer" onClick={handleAction}>
               <img 
                 src={item.img} 
-                alt={item.title} 
+                // CHANGED: Dynamic alt text with keywords
+                alt={`${item.title} - Steph's World Manchester`} 
                 className="w-full h-full object-cover"
               />
               {/* Tap hint overlay */}
