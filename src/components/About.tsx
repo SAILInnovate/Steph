@@ -19,13 +19,20 @@ export function About() {
         
         <div className="w-32 h-32 mx-auto mb-4 relative">
             <div className="absolute inset-0 bg-[#FF69B4] rounded-full translate-x-1 translate-y-1 border-2 border-black"></div>
-            <img src="/images/steph-profile.jpg" alt="Steph" className="relative w-full h-full object-cover rounded-full border-2 border-black z-10" />
+            {/* UPDATED: Better Alt Text for Image Search */}
+            <img 
+              src="/images/steph-profile.jpg" 
+              alt="Steph - Nail Tech & Artist in Droylsden Manchester" 
+              className="relative w-full h-full object-cover rounded-full border-2 border-black z-10" 
+            />
         </div>
 
-        <h2 className="text-3xl font-['Pacifico'] text-[#FF69B4] mb-2">Hey, I'm Steph!</h2>
+        <h2 className="text-3xl font-['Pacifico'] text-[#FF69B4] mb-3">Hey, I'm Steph!</h2>
+        
+        {/* UPDATED: Specific Location Text */}
         <p className="font-['Montserrat'] text-sm text-[#333] font-medium leading-relaxed">
-          I'm a <span className="font-bold bg-[#FFD700]/30 px-1">Qualified Nail & Lash Tech</span> and creator. 
-          I put my heart, soul, and sparkles into every set of nails, phone case, and bouquet I make.
+          I'm a <span className="font-bold bg-[#FFD700]/30 px-1">Qualified Nail & Lash Tech based in Droylsden, Manchester</span>. 
+          Whether you need intricate BIAB art or a handmade custom phone case, I put my heart, soul, and sparkles into every creation.
         </p>
       </div>
     </section>

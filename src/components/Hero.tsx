@@ -21,7 +21,7 @@ export function Hero() {
           Steph's World
         </h1>
         <p className="font-['Montserrat'] font-bold text-sm text-white bg-black inline-block px-4 py-1 -rotate-2">
-          EST. {new Date().getFullYear()}
+          EST. 2025
         </p>
       </div>
 
